@@ -1,0 +1,71 @@
+#include <Servo.h>
+#include <LowPower.h>
+
+const int soilMoisturePin = A0;
+const int pumpPin = 9;
+const int potPin = A1;
+const int buzzerPin = 8;
+const int ledPin = 7;
+const int buttonPin = 2;
+Servo servoMotor;
+
+int threshold = 300;  // Default threshold
+
+void setup() {
+  pinMode(soilMoisturePin, INPUT);
+  pinMode(pumpPin, OUTPUT);
+  pinMode(buzzerPin, OUTPUT);
+  pinMode(ledPin, OUTPUT);
+  pinMode(buttonPin, INPUT_PULLUP);
+  servoMotor.attach(10);
+  attachInterrupt(digitalPinToInterrupt(buttonPin), wakeUp, FALLING);
+}
+
+void loop() {
+  // Read potentiometer to adjust threshold
+  threshold = analogRead(potPin) / 4;  // Map 0-1023 to 0-255
+  
+  // Read soil moisture
+  int soilMoisture = analogRead(soilMoisturePin);
+  
+  if (soilMoisture < threshold) {
+    // Start watering
+    digitalWrite(pumpPin, HIGH);
+    servoMotor.write(90);
+    feedback(true);  // Feedback on start
+    
+    delay(5000);  // Watering duration
+    
+    // Stop watering
+    digitalWrite(pumpPin, LOW);
+    servoMotor.write(0);
+    feedback(false);  // Feedback on stop
+  }
+
+  delay(1000); // Check soil moisture every second
+
+  // Enter sleep mode for power efficiency
+  LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+}
+
+// Feedback mechanism with buzzer and LED
+void feedback(bool start) {
+  if (start) {
+    tone(buzzerPin, 1000, 200);  // Beep for 200 ms
+  } else {
+    tone(buzzerPin, 500, 200);  // Beep for 200 ms at a different frequency
+  }
+  
+  for (int i = 0; i < 3; i++) {  // Blink LED three times
+    digitalWrite(ledPin, HIGH);
+    delay(200);
+    digitalWrite(ledPin, LOW);
+    delay(200);
+  }
+}
+
+// Wake up function for interrupt
+void wakeUp() {
+  // This function will be called when the button is pressed
+}
+
